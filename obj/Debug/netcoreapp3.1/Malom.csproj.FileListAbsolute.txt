@@ -1,0 +1,13 @@
+C:\Users\addam\source\repos\Malom\bin\Debug\netcoreapp3.1\Malom.exe
+C:\Users\addam\source\repos\Malom\bin\Debug\netcoreapp3.1\Malom.deps.json
+C:\Users\addam\source\repos\Malom\bin\Debug\netcoreapp3.1\Malom.runtimeconfig.json
+C:\Users\addam\source\repos\Malom\bin\Debug\netcoreapp3.1\Malom.runtimeconfig.dev.json
+C:\Users\addam\source\repos\Malom\bin\Debug\netcoreapp3.1\Malom.dll
+C:\Users\addam\source\repos\Malom\bin\Debug\netcoreapp3.1\Malom.pdb
+C:\Users\addam\source\repos\Malom\obj\Debug\netcoreapp3.1\Malom.csprojAssemblyReference.cache
+C:\Users\addam\source\repos\Malom\obj\Debug\netcoreapp3.1\Malom.AssemblyInfoInputs.cache
+C:\Users\addam\source\repos\Malom\obj\Debug\netcoreapp3.1\Malom.AssemblyInfo.cs
+C:\Users\addam\source\repos\Malom\obj\Debug\netcoreapp3.1\Malom.csproj.CoreCompileInputs.cache
+C:\Users\addam\source\repos\Malom\obj\Debug\netcoreapp3.1\Malom.dll
+C:\Users\addam\source\repos\Malom\obj\Debug\netcoreapp3.1\Malom.pdb
+C:\Users\addam\source\repos\Malom\obj\Debug\netcoreapp3.1\Malom.genruntimeconfig.cache
