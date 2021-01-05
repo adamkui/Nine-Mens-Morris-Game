@@ -10,10 +10,17 @@ namespace Malom
         public static Dictionary<int, int[]> oszlopRendezés = new Dictionary<int, int[]>();
         public static Dictionary<Játékos, List<string[]>> malmok = new Dictionary<Játékos, List<string[]>>();
         public static string[] bábúk = { "$", "O", "X" };
+        #region Hibaüzenetek
         public static string e1 = "Hibás érték - nem számot adtál meg!";
         public static string e2 = "Hibás érték - adj meg egy számot 1 és 24 között!";
         public static string e3 = "Hibás érték - Kiütéshez használj az ellenfél által elfoglalt mezőt";
         public static string e4 = "Hibás érték - a mező már foglalt";
+        public static string e5 = "Hibás érték - Ellépni csak a saját bábúddal tudsz";
+        public static string e6 = "Hibás érték - Lépni csak azonos sorban vagy oszlopban lehet szomszédos helyre";
+        public static string e7 = "Hibás érték - Nem lehet a kiindulási helyre lépni!";
+        public static string e8 = "Hibás érték - Lépni csak szomszédos helyre lehet";
+        public static string e9 = "Hibás érték - Az adott pontról nem lehet hova ellépni";
+        #endregion
 
         public class Játékos
         {
@@ -32,7 +39,7 @@ namespace Malom
             {
                 string üzenet = kiütés ? $"{this.név}, adj meg egy számot kiütéshez" : $"{this.név}, adj meg egy számot";
                 Console.WriteLine(üzenet);
-                int válasz = VálaszValidálás(kiütés, false);
+                int válasz = VálaszValidálás(kiütés, false, false);
                 pontok[válasz - 1].érték = kiütés ? bábúk[0] : this.bábú; //Tábla frissítése a játékos bábújával
                 Console.Clear();
                 Tábla.TáblaKiírás();
@@ -40,19 +47,25 @@ namespace Malom
 
             public void LépegetésKérdezz()
             {
+                int elsőVálasz = 0;
                 for (int i = 0; i < 2; i++)
                 {
                     this.SzámláljBábút();
                     string üzenet = (i == 0) ? $"{this.név} adj meg egy számot ahonnan ellépsz" : $"{this.név} adj meg egy számot ahová ellépsz";
                     Console.WriteLine(üzenet);
-                    int válasz = VálaszValidálás(false, (i == 0) ? true : false);
-                    //Tábla update
+                    int válasz = VálaszValidálás(false, (i == 0) ? true : false, (i == 0) ? false : true, (i == 0) ? 0 : elsőVálasz);
+                    elsőVálasz = (i == 0) ? válasz : elsőVálasz;
+                    if (i == 1)
+                    {
+                        pontok[elsőVálasz - 1].érték = bábúk[0];
+                        pontok[válasz - 1].érték = this.bábú;
+                    }
                     Console.Clear();
                     Tábla.TáblaKiírás();
                 }
             }
 
-            public int VálaszValidálás(bool kiütés, bool lépegetés)
+            public int VálaszValidálás(bool kiütés, bool lépegetés, bool másodikÉrték, int honnan = 0)
             {
                 bool számRendben;
                 int válasz;
@@ -62,8 +75,105 @@ namespace Malom
                     if (!számRendben) { Console.WriteLine(e1); } 
                     if (számRendben && (válasz <= 0 || válasz >= 25)) { Console.WriteLine(e2); számRendben = false; }
                     if (számRendben && (kiütés && (pontok[válasz - 1].érték == "$" || pontok[válasz - 1].érték == this.bábú))) { Console.WriteLine(e3); számRendben = false; }
-                    if (számRendben && ((!kiütés) && pontok[válasz - 1].érték != "$")) { Console.WriteLine(e4); számRendben = false; } //ezzel baj lesz a lépegetés közbeni első meghívásnál
-                    //Ellenőrizd hogy csak egyet lépett-e a játékos (a megadott első ponthoz képest a saját oszlopában vagy sorában mozog-e)
+                    if (számRendben && !lépegetés && ((!kiütés) && pontok[válasz - 1].érték != "$")) { Console.WriteLine(e4); számRendben = false; }
+                    if (számRendben && lépegetés && pontok[válasz - 1].érték != this.bábú) { Console.WriteLine(e5); számRendben = false; }
+                    if (számRendben && !lépegetés && másodikÉrték) 
+                    {
+                        int honnanSor = pontok[honnan - 1].sor;
+                        int honnanOszlop = pontok[honnan - 1].oszlop;
+                        int hovaSor = pontok[válasz - 1].sor;
+                        int hovaOszlop = pontok[válasz - 1].oszlop;
+                        if (honnanSor != hovaSor && honnanOszlop != hovaOszlop) { Console.WriteLine(e6); számRendben = false; }
+                        if (honnanSor == hovaSor && honnanOszlop == hovaOszlop) { Console.WriteLine(e7); számRendben = false; }
+                        bool vízszintesLépésRendben = true;
+                        bool függőlegesLépésRendben = true;
+
+                        #region-Vízszintes-lépés
+                        if (honnanSor == hovaSor)
+                        {
+                            //vízszintesen léptünk
+                            Pont[] sajátSorPontjai = pontok.Where(pont => pont.sor == pontok[honnan - 1].sor).ToArray();
+                            int s = Array.IndexOf(sajátSorPontjai, pontok[honnan - 1]);
+                            Console.WriteLine(s);
+                            switch (s)
+                            {
+                                case 0:
+                                    if (sajátSorPontjai[1].id != pontok[válasz - 1].id) { vízszintesLépésRendben = false; }
+                                    break;
+                                case 1:
+                                    if (sajátSorPontjai[0].id != pontok[válasz - 1].id && sajátSorPontjai[2].id != pontok[válasz - 1].id) { vízszintesLépésRendben = false; }
+                                    break;
+                                case 2:
+                                    if (sajátSorPontjai[1].id != pontok[válasz - 1].id) { vízszintesLépésRendben = false; }
+                                    break;
+                            }
+                        }
+                        #endregion
+
+                        #region-Függőleges-lépés
+                        if (honnanOszlop == hovaOszlop)
+                        {
+                            //Függőlegesen léptünk
+                            Pont[] sajátOszlopPontjai = pontok.Where(pont => pont.oszlop == pontok[honnan - 1].oszlop).ToArray();
+                            int s = Array.IndexOf(sajátOszlopPontjai, pontok[honnan - 1]);
+                            Console.WriteLine(s);
+                            switch (s)
+                            {
+                                case 0:
+                                    if (sajátOszlopPontjai[1].id != pontok[válasz - 1].id) { függőlegesLépésRendben = false; }
+                                    break;
+                                case 1:
+                                    if (sajátOszlopPontjai[0].id != pontok[válasz - 1].id && sajátOszlopPontjai[2].id != pontok[válasz - 1].id) { függőlegesLépésRendben = false; }
+                                    break;
+                                case 2:
+                                    if (sajátOszlopPontjai[1].id != pontok[válasz - 1].id) { függőlegesLépésRendben = false; }
+                                    break;
+                            }
+                        }
+                        #endregion
+
+                        if ((!függőlegesLépésRendben) || (!vízszintesLépésRendben)) { Console.WriteLine(e8); számRendben = false; }
+                    }
+                    
+                    #region-Van-E-Valid-Opció
+                    if (számRendben && lépegetés && !másodikÉrték)
+                    {
+                        //Megnézzük hogy van-e bármilyen lehetséges mozgás a lépegetés kiindulópontjávól
+                        Pont[] sajátSorPontjai = pontok.Where(pont => pont.sor == pontok[válasz - 1].sor).ToArray();
+                        int s = Array.IndexOf(sajátSorPontjai, pontok[válasz - 1]);
+                        bool nemLehetSorbanLépni = false;
+                        switch (s)
+                        {
+                            case 0:
+                                if (sajátSorPontjai[1].érték != bábúk[0]) { nemLehetSorbanLépni = true; }
+                                break;
+                            case 1:
+                                if (sajátSorPontjai[0].érték != bábúk[0] && sajátSorPontjai[2].érték != bábúk[0]) { nemLehetSorbanLépni = true; }
+                                break;
+                            case 2:
+                                if (sajátSorPontjai[1].érték != bábúk[0]) { nemLehetSorbanLépni = true; }
+                                break;
+                        }
+
+                        Pont[] sajátOszlopPontjai = pontok.Where(pont => pont.oszlop == pontok[válasz - 1].oszlop).ToArray();
+                        int o = Array.IndexOf(sajátOszlopPontjai, pontok[válasz - 1]);
+                        bool nemLehetOszlopbanLépni = false;
+                        switch (o)
+                        {
+                            case 0:
+                                if (sajátOszlopPontjai[1].érték != bábúk[0]) { nemLehetOszlopbanLépni = true; }
+                                break;
+                            case 1:
+                                if (sajátOszlopPontjai[0].érték != bábúk[0] && sajátOszlopPontjai[2].érték != bábúk[0]) { nemLehetOszlopbanLépni = true; }
+                                break;
+                            case 2:
+                                if (sajátOszlopPontjai[1].érték != bábúk[0]) { nemLehetOszlopbanLépni = true; }
+                                break;
+                        }
+                        if (nemLehetSorbanLépni && nemLehetOszlopbanLépni) { Console.WriteLine(e9); számRendben = false; }
+                    }
+                    #endregion
+
                 } while (!számRendben);
                 return válasz;
             }
@@ -104,9 +214,9 @@ namespace Malom
         public class Pont
         {
             public int id;
-            public string név;
-            public int sor;
-            public int oszlop;
+            public string név; 
+            public int sor;     
+            public int oszlop;  
             public string érték;
 
             public Pont(int id, string név, int sor, int oszlop, string érték)
@@ -136,9 +246,8 @@ namespace Malom
                 int i = 1;
                 for (int s = 1; s < 9; s++) {  
                     for (int o = 1; o < 4; o++) {
-                        IEnumerable<KeyValuePair<int, int[]>> tartalmazóOszlop = oszlopRendezés.Where(oszlop => oszlop.Value.Contains(i)); //Keresd meg azt az oszlopRendezés értéket amely tartalmazza az i-t
-                        int oszlop = tartalmazóOszlop.ToArray()[0].Key; //Mivel csak egy ilyen lehetséges KeyValuePair van, ezért a 0. elem kulcsmezője megadja az oszlopszámot ahová a pont tartozik
-                        pontok.Add(new Pont(i, $"p{i}", s, oszlop, bábúk[0])); 
+                        int oszlop = oszlopRendezés.Where(oszlop => oszlop.Value.Contains(i)).ToArray()[0].Key;
+                        pontok.Add(new Pont(i, $"p{i}", s, oszlop, bábúk[0]));    
                         i++;
                     }
                 }
@@ -223,7 +332,7 @@ namespace Malom
                 do 
                 {
                     Console.WriteLine($"{i}. lépegetés kör");
-                    int idx = ((i % 2 == 0) ? 0 : 1);
+                    int idx = ((i % 2 != 0) ? 0 : 1);
                     játékosok[idx].LépegetésKérdezz();
                     i++;
                 } while (i <= 4);  
