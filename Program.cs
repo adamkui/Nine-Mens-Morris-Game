@@ -97,8 +97,7 @@ namespace Malom
 
             public void SzámláljBábút() 
             {
-                IEnumerable<Pont> sajátPontok = pontok.Where(pont => pont.érték == this.bábú);
-                this.bábúkSzáma = sajátPontok.Count();
+                this.bábúkSzáma = pontok.Where(pont => pont.érték == this.bábú).Count();
             }
         }
 
