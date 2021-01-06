@@ -11,11 +11,12 @@ namespace Malom
         public static Dictionary<int, int[]> oszlopRendezés = new Dictionary<int, int[]>();
         public static Dictionary<Játékos, List<string[]>> malmok = new Dictionary<Játékos, List<string[]>>();
         public static string[] bábúk = { "$", "O", "X" };
+
         #region Hibaüzenetek
-        public static string e1 = "Hibás érték - nem számot adtál meg!";
-        public static string e2 = "Hibás érték - adj meg egy számot 1 és 24 között!";
+        public static string e1 = "Hibás érték - Nem számot adtál meg!";
+        public static string e2 = "Hibás érték - Adj meg egy számot 1 és 24 között!";
         public static string e3 = "Hibás érték - Kiütéshez használj az ellenfél által elfoglalt mezőt";
-        public static string e4 = "Hibás érték - a mező már foglalt";
+        public static string e4 = "Hibás érték - A mező már foglalt";
         public static string e5 = "Hibás érték - Ellépni csak a saját bábúddal tudsz";
         public static string e6 = "Hibás érték - Lépni csak azonos sorban vagy oszlopban lehet szomszédos helyre";
         public static string e7 = "Hibás érték - Nem lehet a kiindulási helyre lépni!";
@@ -28,12 +29,14 @@ namespace Malom
             public string név;
             public string bábú;
             public int bábúkSzáma;
+            public bool utolsóBábú;
 
             public Játékos(string név, string bábú, int bábúkSzáma)
             {
                 this.név = név;
                 this.bábú = bábú;
                 this.bábúkSzáma = bábúkSzáma;
+                this.utolsóBábú = false;
             }
 
             public void LerakásKérdezz(bool kiütés)
@@ -52,9 +55,10 @@ namespace Malom
                 int elsőVálasz = 0;
                 for (int i = 0; i < 2; i++)
                 {
+                    int válasz;
                     string üzenet = (i == 0) ? $"{this.név} adj meg egy számot ahonnan ellépsz" : $"{this.név} adj meg egy számot ahová ellépsz";
                     Console.WriteLine(üzenet);
-                    int válasz = VálaszValidálás(false, (i == 0) ? true : false, (i == 0) ? false : true, (i == 0) ? 0 : elsőVálasz);
+                    válasz = (this.utolsóBábú) ? UtolsóKörösValidálás(i) : VálaszValidálás(false, (i == 0) ? true : false, (i == 0) ? false : true, (i == 0) ? 0 : elsőVálasz);
                     elsőVálasz = (i == 0) ? válasz : elsőVálasz;
                     if (i == 1)
                     {
@@ -102,7 +106,6 @@ namespace Malom
                             //vízszintesen léptünk
                             Pont[] sajátSorPontjai = pontok.Where(pont => pont.sor == pontok[honnan - 1].sor).ToArray();
                             int s = Array.IndexOf(sajátSorPontjai, pontok[honnan - 1]);
-                            Console.WriteLine(s);
                             switch (s)
                             {
                                 case 0:
@@ -124,7 +127,6 @@ namespace Malom
                             //Függőlegesen léptünk
                             Pont[] sajátOszlopPontjai = pontok.Where(pont => pont.oszlop == pontok[honnan - 1].oszlop).ToArray();
                             int s = Array.IndexOf(sajátOszlopPontjai, pontok[honnan - 1]);
-                            Console.WriteLine(s);
                             switch (s)
                             {
                                 case 0:
@@ -146,7 +148,7 @@ namespace Malom
                     #region-Van-E-Valid-Opció
                     if (számRendben && lépegetés && !másodikÉrték)
                     {
-                        //Megnézzük hogy van-e bármilyen lehetséges mozgás a lépegetés kiindulópontjávól
+                        //Megnézzük hogy van-e bármilyen lehetséges mozgás a lépegetés kiindulópontjából
                         Pont[] sajátSorPontjai = pontok.Where(pont => pont.sor == pontok[válasz - 1].sor).ToArray();
                         int s = Array.IndexOf(sajátSorPontjai, pontok[válasz - 1]);
                         bool nemLehetSorbanLépni = false;
@@ -182,6 +184,20 @@ namespace Malom
                     }
                     #endregion
 
+                } while (!számRendben);
+                return válasz;
+            }
+
+            public int UtolsóKörösValidálás(int i)
+            {
+                bool számRendben;
+                int válasz;
+                do
+                {
+                    számRendben = int.TryParse(Console.ReadLine(), out válasz);
+                    if (!számRendben) { Console.WriteLine(e1); }
+                    if (számRendben && (válasz <= 0 || válasz >= 25)) { Console.WriteLine(e2); számRendben = false; }
+                    if (számRendben && pontok[válasz - 1].érték != "$" && i == 1) { Console.WriteLine(e4); számRendben = false; }
                 } while (!számRendben);
                 return válasz;
             }
@@ -265,8 +281,8 @@ namespace Malom
             {
                 //Segédlet
                 Console.WriteLine($"Malom Játék {Environment.NewLine}{Environment.NewLine}Segédlet:{Environment.NewLine}");
-                Console.WriteLine($"{játékosok[0].név} bábúja: {játékosok[0].bábú}");
-                Console.WriteLine($"{játékosok[1].név} bábúja: {játékosok[1].bábú} {Environment.NewLine}");
+                Console.WriteLine($"{játékosok[0].név} bábúja: {játékosok[0].bábú}, bábúinak száma: {játékosok[0].bábúkSzáma}");
+                Console.WriteLine($"{játékosok[1].név} bábúja: {játékosok[1].bábú}, bábúinak száma: {játékosok[1].bábúkSzáma} {Environment.NewLine}");
                 Console.WriteLine("1-------------------2--------------------3");
                 Console.WriteLine("|                   |                    |");  
                 Console.WriteLine("|    4--------------5--------------6     |");
@@ -345,6 +361,7 @@ namespace Malom
                     játékosok[idx].LépegetésKérdezz();
                     játékosok[idx].MalomEllenőrzés();
                     játékosok.ForEach(játékos => játékos.SzámláljBábút());
+                    játékosok[idx].utolsóBábú = (játékosok[idx].bábúkSzáma < 4) ? true : false;
                     i++;
                 } while (!játékosok.Any(p => p.bábúkSzáma < 3));
                 Console.WriteLine($"Játék vége! A nyertes: {játékosok.Where(p => p.bábúkSzáma > 2).ToArray()[0].név}");
