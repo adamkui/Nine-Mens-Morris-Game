@@ -6,6 +6,7 @@ namespace Malom
 {
     class Program
     {
+        public static List<Játékos> játékosok = new List<Játékos>();
         public static List<Pont> pontok = new List<Pont>();
         public static Dictionary<int, int[]> oszlopRendezés = new Dictionary<int, int[]>();
         public static Dictionary<Játékos, List<string[]>> malmok = new Dictionary<Játékos, List<string[]>>();
@@ -41,6 +42,7 @@ namespace Malom
                 Console.WriteLine(üzenet);
                 int válasz = VálaszValidálás(kiütés, false, false);
                 pontok[válasz - 1].érték = kiütés ? bábúk[0] : this.bábú; //Tábla frissítése a játékos bábújával
+                if (kiütés && malmok[this].Any(malom => malom.Contains(pontok[válasz - 1].név))) { this.malomRekordTörlés(válasz); }
                 Console.Clear();
                 Tábla.TáblaKiírás();
             }
@@ -50,7 +52,6 @@ namespace Malom
                 int elsőVálasz = 0;
                 for (int i = 0; i < 2; i++)
                 {
-                    this.SzámláljBábút();
                     string üzenet = (i == 0) ? $"{this.név} adj meg egy számot ahonnan ellépsz" : $"{this.név} adj meg egy számot ahová ellépsz";
                     Console.WriteLine(üzenet);
                     int válasz = VálaszValidálás(false, (i == 0) ? true : false, (i == 0) ? false : true, (i == 0) ? 0 : elsőVálasz);
@@ -60,9 +61,16 @@ namespace Malom
                         pontok[elsőVálasz - 1].érték = bábúk[0];
                         pontok[válasz - 1].érték = this.bábú;
                     }
+                    if (malmok[this].Any(malom => malom.Contains(pontok[elsőVálasz - 1].név))) { this.malomRekordTörlés(válasz); }
                     Console.Clear();
                     Tábla.TáblaKiírás();
                 }
+            }
+
+            public void malomRekordTörlés(int válasz)
+            {
+                int index = Array.FindIndex(malmok[this].ToArray(), malom => malom.Contains(pontok[válasz - 1].név));
+                malmok[this].Remove(malmok[this][index]);
             }
 
             public int VálaszValidálás(bool kiütés, bool lépegetés, bool másodikÉrték, int honnan = 0)
@@ -256,7 +264,9 @@ namespace Malom
             public static void TáblaKiírás()
             {
                 //Segédlet
-                Console.WriteLine("Malom Játék" + Environment.NewLine + Environment.NewLine + "Segédlet: " + Environment.NewLine);
+                Console.WriteLine($"Malom Játék {Environment.NewLine}{Environment.NewLine}Segédlet:{Environment.NewLine}");
+                Console.WriteLine($"{játékosok[0].név} bábúja: {játékosok[0].bábú}");
+                Console.WriteLine($"{játékosok[1].név} bábúja: {játékosok[1].bábú} {Environment.NewLine}");
                 Console.WriteLine("1-------------------2--------------------3");
                 Console.WriteLine("|                   |                    |");  
                 Console.WriteLine("|    4--------------5--------------6     |");
@@ -272,7 +282,7 @@ namespace Malom
                 Console.WriteLine("22------------------23------------------24");
                 //Játékfelület
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine(Environment.NewLine + Environment.NewLine + "Játéktábla: " + Environment.NewLine);
+                Console.WriteLine($"{Environment.NewLine}{Environment.NewLine}Játéktábla:{Environment.NewLine}");
                 Console.WriteLine($"{pontok[0].érték}-------------------{pontok[1].érték}--------------------{pontok[2].érték}");
                 Console.WriteLine($"|                   |                    |");
                 Console.WriteLine($"|    {pontok[3].érték}--------------{pontok[4].érték}--------------{pontok[5].érték}     |");
@@ -301,9 +311,8 @@ namespace Malom
                 Console.Clear();
             }
 
-            public static List<Játékos> JátékosokLétrehozása()
+            public static void JátékosokLétrehozása()
             {
-                List<Játékos> játékosok = new List<Játékos>();
                 for (int i = 1; i < 3; i++)
                 {
                     Console.WriteLine($"{i}.játékos add meg a neved!");
@@ -312,7 +321,6 @@ namespace Malom
                     malmok.Add(játékosok[i - 1], new List<string[]>());
                     Console.Clear();
                 }
-                return játékosok;
             }
 
             public static void Lerakás(List<Játékos> játékosok)
@@ -322,6 +330,7 @@ namespace Malom
                     int idx = ((i % 2 != 0) ? 0 : 1);
                     játékosok[idx].LerakásKérdezz(false);
                     játékosok[idx].MalomEllenőrzés();
+                    játékosok.ForEach(játékos => játékos.SzámláljBábút());
                 }
                 Console.WriteLine("Lerakás vége!");
             }
@@ -334,15 +343,18 @@ namespace Malom
                     Console.WriteLine($"{i}. lépegetés kör");
                     int idx = ((i % 2 != 0) ? 0 : 1);
                     játékosok[idx].LépegetésKérdezz();
+                    játékosok[idx].MalomEllenőrzés();
+                    játékosok.ForEach(játékos => játékos.SzámláljBábút());
                     i++;
-                } while (i <= 4);  
+                } while (!játékosok.Any(p => p.bábúkSzáma < 3));
+                Console.WriteLine($"Játék vége! A nyertes: {játékosok.Where(p => p.bábúkSzáma > 2).ToArray()[0].név}");
             }
         }
             
         static void Main(string[] args)
         {
             Játék.Köszöntő();
-            List<Játékos> játékosok = Játék.JátékosokLétrehozása();
+            Játék.JátékosokLétrehozása();
             Tábla.PontokLétrehozása();
             Tábla.TáblaKiírás();
             Játék.Lerakás(játékosok);
